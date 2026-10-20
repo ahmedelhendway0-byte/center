@@ -18,6 +18,7 @@ var DAYS_BACK = 35;     // كام يوم ورا يظهر في تابات الم�
 
 function setup() {
   var ss = SpreadsheetApp.getActive();
+  if (/Untitled|بدون عنوان/.test(ss.getName())) ss.rename("سنتر هنداوي - سجلات (لايف)");
   var st = ss.getSheetByName(SETTINGS) || ss.insertSheet(SETTINGS);
   st.setRightToLeft(true);
   st.getRange("A1:B4").setValues([["الإعداد", "القيمة"], ["مفتاح الشيت", st.getRange("B2").getValue() || ""], ["آخر تحديث", ""], ["الحالة", ""]]);
