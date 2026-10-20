@@ -4,8 +4,8 @@
 window.CENTER_CONFIG = {
   /* رابط مشروع Supabase والمفتاح العام (publishable / anon).
      سيبهم فاضيين "" = وضع تجريبي على المتصفح بس (من غير نت ومن غير داتابيز). */
-  SUPABASE_URL: "",
-  SUPABASE_KEY: "",
+  SUPABASE_URL: "https://ivyfbyenoxxngymvojuz.supabase.co",
+  SUPABASE_KEY: "sb_publishable_5yolKZUBjBTDaeMhFkaM3w_NZqcpQY_",
 
   /* اسم السنتر اللي بيظهر في شاشة الدخول قبل ما البيانات تتحمّل */
   CENTER_NAME: "سنتر هنداوي",

@@ -11,8 +11,8 @@
       (المفتاح بيطلع من السيستم: صاحب السنتر ← البيانات ← ربط شيت جوجل)
    4) شغّل الدالة refresh مرة، وبعد كده هيتحدّث لوحده
    ===================================================================== */
-var SUPABASE_URL = "";  // نفس اللي في js/config.js
-var SUPABASE_KEY = "";  // المفتاح العام (publishable / anon)
+var SUPABASE_URL = "https://ivyfbyenoxxngymvojuz.supabase.co";  // نفس اللي في js/config.js
+var SUPABASE_KEY = "sb_publishable_5yolKZUBjBTDaeMhFkaM3w_NZqcpQY_";  // المفتاح العام (publishable)
 var SETTINGS = "الإعدادات";
 var DAYS_BACK = 35;     // كام يوم ورا يظهر في تابات المجموعات
 
@@ -34,7 +34,7 @@ function refresh() {
   if (!SUPABASE_URL || !SUPABASE_KEY || !key) { if (st) st.getRange("B4").setValue("ناقص رابط Supabase أو مفتاح الشيت"); return; }
   var res = UrlFetchApp.fetch(SUPABASE_URL.replace(/\/$/, "") + "/rest/v1/rpc/api_export", {
     method: "post", contentType: "application/json", muteHttpExceptions: true,
-    headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY },
+    headers: /^eyJ/.test(SUPABASE_KEY) ? { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY } : { apikey: SUPABASE_KEY },
     payload: JSON.stringify({ p_key: key })
   });
   var j = JSON.parse(res.getContentText() || "{}");

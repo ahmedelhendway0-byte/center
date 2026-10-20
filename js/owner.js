@@ -120,4 +120,15 @@ V.oSheet = async () => {
     '<input class="in" id="skey" dir="ltr" readonly value="' + U.esc(k) + '" onclick="this.select()"><button class="pri" onclick="navigator.clipboard.writeText(document.getElementById(\'skey\').value).then(()=>U.toast(\'' + tr('اتنسخ ✅', 'Copied ✅') + '\'),()=>document.getElementById(\'skey\').select())">' + tr('نسخ', 'Copy') + '</button>' +
     '<p class="mu small">' + tr('المفتاح ده بيقرا كل بيانات السنتر — ماتبعتهوش لحد.', 'This key reads all center data — keep it private.') + '</p>');
 };
-V.oReset = demo => U.modal('<h3>' + (demo ? tr('إعادة تحميل الديمو؟', 'Reload the demo?') : tr('مسح كل البيانات؟', 'Erase all data?')) + '</h3><p>' + tr('كل البيانات الحالية هتتمسح. نزّل نسخة احتياطية الأول لو محتاجها.', 'All current data will be erased. Download a backup first if needed.') + '</p><button class="pri danger" onclick="U.close();' + (demo ? 'App.setSes(null);App.loadDemo()' : 'Store.wipe();App.setSes(null);App.go(\'\')') + '">' + tr('تأكيد', 'Confirm') + '</button>');
+V.oReset = demo => U.modal('<h3>' + (demo ? tr('إعادة تحميل الديمو؟', 'Reload the demo?') : tr('مسح كل البيانات؟', 'Erase all data?')) + '</h3><p>' + tr('كل البيانات الحالية هتتمسح. نزّل نسخة احتياطية الأول لو محتاجها.', 'All current data will be erased. Download a backup first if needed.') + '</p><button class="pri danger" onclick="U.close();V.oDoReset(' + demo + ')">' + tr('تأكيد', 'Confirm') + '</button>');
+// أونلاين: صاحب السنتر يفضل داخل والتغيير يتبعت للداتابيز. على الجهاز: يرجع لأول شاشة
+V.oDoReset = demo => {
+  if (Sync.live) {
+    const c = DB.center, ow = DB.owner;
+    if (demo) { Store.fromData(window.DEMO_DATA); Store.demoHistory(); } else DB = Store.blank();
+    DB.owner = ow; if (!demo) DB.center = c;
+    Store.save(); App.go('o_dash'); U.toast(tr('اتعمل ✅ — بيتحفظ أونلاين…', 'Done ✅ — saving online…'));
+    return;
+  }
+  if (demo) { App.setSes(null); App.loadDemo(); } else { Store.wipe(); App.setSes(null); App.go(''); }
+};

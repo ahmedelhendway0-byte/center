@@ -11,7 +11,8 @@ const Sync = (() => {
 
   async function rpc(fn, args) {
     const r = await fetch(C.SUPABASE_URL.replace(/\/$/, '') + '/rest/v1/rpc/' + fn, {
-      method: 'POST', headers: { apikey: C.SUPABASE_KEY, Authorization: 'Bearer ' + C.SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(args),
+      // المفتاح الجديد (sb_publishable_) بيتبعت في apikey بس؛ المفتاح القديم (JWT) محتاج Authorization كمان
+      method: 'POST', headers: Object.assign({ apikey: C.SUPABASE_KEY, 'Content-Type': 'application/json' }, /^eyJ/.test(C.SUPABASE_KEY) ? { Authorization: 'Bearer ' + C.SUPABASE_KEY } : {}), body: JSON.stringify(args),
     });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return r.json();

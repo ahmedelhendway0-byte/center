@@ -131,7 +131,10 @@ const App = {
         (errs.length ? '<div class="warn"><b>' + errs.length + tr(' ملاحظة (الصفوف الغلط هتتساب):', ' issues (bad rows are skipped):') + '</b><ul>' + errs.slice(0, 15).map(e => '<li>' + U.esc(e) + '</li>').join('') + '</ul></div>' : '<p class="okt">' + tr('الملف سليم ✅', 'File looks good ✅') + '</p>') +
         (DB ? '<p class="badt">⚠️ ' + tr('الاستيراد هيستبدل كل البيانات الحالية. نزّل نسخة احتياطية الأول لو محتاجها.', 'Import replaces all current data. Download a backup first if needed.') + '</p>' : '') +
         '<button class="pri" id="doimp">' + tr('استيراد', 'Import') + '</button>');
-      document.getElementById('doimp').onclick = () => { Store.fromData(data); Store.save(); U.close(); U.toast(tr('اتستوردت البيانات ✅', 'Imported ✅')); App.setSes(null); App.go(''); };
+      document.getElementById('doimp').onclick = () => {
+        const ow = DB && DB.owner; Store.fromData(data); if (ow) DB.owner = ow; Store.save(); U.close(); U.toast(tr('اتستوردت البيانات ✅', 'Imported ✅'));
+        if (Sync.live && App.ses) App.go('o_dash'); else { App.setSes(null); App.go(''); }
+      };
     } catch (e) { U.toast(e.message, 'bad'); }
     inp.value = '';
   },
