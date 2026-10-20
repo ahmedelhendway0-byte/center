@@ -11,8 +11,8 @@
       (المفتاح بيطلع من السيستم: صاحب السنتر ← البيانات ← ربط شيت جوجل)
    4) شغّل الدالة refresh مرة، وبعد كده هيتحدّث لوحده
    ===================================================================== */
-var SUPABASE_URL = "https://ivyfbyenoxxngymvojuz.supabase.co";  // نفس اللي في js/config.js
-var SUPABASE_KEY = "sb_publishable_5yolKZUBjBTDaeMhFkaM3w_NZqcpQY_";  // المفتاح العام (publishable)
+var SUPABASE_URL = "https://wxsfaqhketlmcamfuojt.supabase.co";  // نفس اللي في js/config.js
+var SUPABASE_KEY = "sb_publishable_8sCLyZAfkPxhGKqcT3XYTQ_5orcwtCL";  // المفتاح العام (publishable)
 var SETTINGS = "الإعدادات";
 var DAYS_BACK = 35;     // كام يوم ورا يظهر في تابات المجموعات
 
