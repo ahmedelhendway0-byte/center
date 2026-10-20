@@ -1,6 +1,6 @@
 // الهيكل العام: تسجيل الدخول، القوائم، التنقل بين الشاشات
 const V = {}; // كل شاشة دالة بترجع HTML (متعرفة في staff.js / owner.js / portal.js)
-const SES_KEY = 'center_session_v2';
+const SES_KEY = Sync.live ? 'center_session_live' : 'center_session_v2'; // جلسة الأونلاين منفصلة عن الديمو
 
 const App = {
   ses: null,   // {role, id, a?, as?}  role: owner | teacher | assistant | student | parent

@@ -3,7 +3,7 @@
 // - كل تعديل بيتبعت لوحده بعد ثانية (اللي اتغيّر بس)، ولو النت فاصل بيستنى ويتبعت لما يرجع.
 // - كل دقيقة بيجيب آخر نسخة عشان كل الأجهزة تشوف نفس البيانات.
 // روابط الديمو (#demo-... أو ?demo=1) بتفضل تجريبية على المتصفح ومش بتلمس الداتابيز.
-const Sync = (() => {
+const Sync = window.Sync = (() => {
   const C = window.CENTER_CONFIG || {};
   const live = !!(C.SUPABASE_URL && C.SUPABASE_KEY) && !/[?&]demo=1(&|$)/.test(location.search) && !/^#demo-/.test(location.hash);
   const TK = 'center_live_token', SNAP = 'center_live_snap';
