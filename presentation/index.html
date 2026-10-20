@@ -1,0 +1,629 @@
+<meta charset="utf-8">
+<title>سيستم السنتر</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lalezar&family=IBM+Plex+Sans+Arabic:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: سبورة سودا بملء الشاشة، مشهد واحد كل مرة بيتكتب بالطباشير، وتحت شريط تقدّم بيتداس عليه */
+:root{
+  --board:#15201b; --board2:#1c2a24; --line:#2c3d35;
+  --chalk:#eef0e6; --dim:#9db0a5;
+  --marker:#f2c14e; --pen:#e8553f; --ok:#5fd39a; --wa:#25d366;
+  --f-display:"Lalezar","IBM Plex Sans Arabic",Tahoma,sans-serif;
+  --f-body:"IBM Plex Sans Arabic",Tahoma,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{margin:0;background:var(--board);color:var(--chalk);font-family:var(--f-body);font-size:16px;overflow:hidden;
+  background-image:radial-gradient(ellipse at 20% 10%,#ffffff08,transparent 50%),radial-gradient(ellipse at 85% 90%,#ffffff06,transparent 45%),repeating-linear-gradient(115deg,#ffffff03 0 2px,transparent 2px 7px)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid var(--marker);outline-offset:3px}
+.app{height:100%;display:grid;grid-template-rows:auto 1fr auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* شريط فوق */
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:14px}
+.brand{font-family:var(--f-mono);font-weight:600;letter-spacing:.18em;font-size:12px;color:var(--dim)}
+.brand b{color:var(--marker);letter-spacing:.24em}
+.ctrls{display:flex;gap:6px;align-items:center}
+.ctrls button{background:var(--board2);border:1px solid var(--line);border-radius:10px;padding:7px 12px;font-size:14px}
+.ctrls button:hover{border-color:var(--marker)}
+.count{font-family:var(--f-mono);font-size:12px;color:var(--dim);min-width:52px;text-align:center}
+
+/* المسرح */
+.stage{position:relative;min-height:0}
+.scene{position:absolute;inset:0;display:none;align-items:center;justify-content:center;overflow-y:auto;padding-block:8px}
+.scene.on{display:flex}
+.wrap{width:100%;max-width:1120px;display:grid;gap:28px;align-items:center}
+.two{grid-template-columns:minmax(0,1fr) minmax(0,1.05fr)}
+@media(max-width:820px){.two{grid-template-columns:1fr}.scene{align-items:flex-start}}
+
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.2em;color:var(--marker);text-transform:uppercase}
+h1,h2{font-family:var(--f-display);font-weight:400;margin:0;line-height:1.15;text-wrap:balance}
+h1{font-size:clamp(44px,8vw,104px)}
+h2{font-size:clamp(32px,5vw,60px)}
+.lead{font-size:clamp(16px,1.8vw,20px);line-height:1.8;color:var(--dim);max-width:52ch;margin:0}
+.hl{color:var(--marker)}
+.red{color:var(--pen)}
+.copy{display:grid;gap:16px;min-width:0}
+.demo{justify-self:start;display:inline-flex;align-items:center;gap:10px;background:var(--marker);color:#1a1405;border:0;border-radius:12px;padding:12px 20px;font-weight:700;font-size:16px;box-shadow:0 0 0 0 #f2c14e66;animation:pulse 2.4s infinite}
+.demo:hover{transform:translateY(-2px)}
+.demo small{font-weight:600;opacity:.75;font-size:12px}
+.demos{display:flex;flex-wrap:wrap;gap:10px}
+.demo.ghost{background:transparent;color:var(--marker);border:1.5px solid var(--marker);animation:none}
+@keyframes pulse{50%{box-shadow:0 0 0 10px #f2c14e00}}
+
+/* حركات الدخول: كل عنصر .a بيدخل بتأخير --d */
+.scene.on .a{animation:rise .7s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--d,0) * 1s)}
+.scene.on .w{animation:write 1.1s steps(28) both;animation-delay:calc(var(--d,0) * 1s)}
+@keyframes rise{from{opacity:0;transform:translateY(22px)}}
+@keyframes write{from{clip-path:inset(0 0 0 100%)}to{clip-path:inset(0 0 0 0)}}
+@keyframes pop{0%{opacity:0;transform:scale(.6)}70%{transform:scale(1.06)}}
+@keyframes grow{from{transform:scaleY(0)}}
+@keyframes strike{from{transform:scaleX(0)}}
+@keyframes blink{50%{opacity:0}}
+
+/* ورقة / كارت شاشة */
+.sheet{background:var(--board2);border:1px solid var(--line);border-radius:18px;padding:18px;display:grid;gap:10px;min-width:0}
+.sheet h4{margin:0;font-size:13px;color:var(--dim);font-weight:600}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 12px;border-radius:12px;background:#ffffff06;font-size:15px}
+.row small{display:block;color:var(--dim);font-family:var(--f-mono);font-size:11px}
+.pill{font-size:12px;padding:3px 10px;border-radius:99px;font-weight:700;white-space:nowrap}
+.p-ok{background:#5fd39a26;color:var(--ok)}.p-wa{background:#f2c14e26;color:var(--marker)}.p-bad{background:#e8553f2b;color:var(--pen)}.p-mu{background:#ffffff12;color:var(--dim)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.sheet .row .pill{white-space:normal;text-align:start}
+
+/* المشهد 1 */
+.intro{text-align:center;justify-items:center}
+.intro .lead{text-align:center}
+.stats{display:flex;flex-wrap:wrap;justify-content:center;gap:12px}
+.stat{border:1px dashed var(--line);border-radius:14px;padding:12px 18px;min-width:120px}
+.stat b{display:block;font-family:var(--f-display);font-size:38px;font-weight:400;color:var(--marker)}
+.stat span{font-size:13px;color:var(--dim)}
+.powered{font-family:var(--f-mono);font-size:12px;letter-spacing:.3em;color:var(--dim)}
+.powered b{color:var(--chalk)}
+
+/* المشكلة: شطب بالقلم الأحمر */
+.probs{display:grid;gap:12px}
+.prob{position:relative;font-size:clamp(18px,2.2vw,24px);padding:10px 4px;width:max-content;max-width:100%}
+.prob:after{content:"";position:absolute;inset-inline:0;top:52%;height:3px;background:var(--pen);border-radius:3px;transform-origin:right;transform:scaleX(0)}
+.scene.on .prob:after{animation:strike .5s ease-out both;animation-delay:calc(var(--d,0) * 1s + .6s);transform:none}
+
+/* الأدوار */
+.roles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.role{background:var(--board2);border:1px solid var(--line);border-radius:16px;padding:16px;text-align:start;display:grid;gap:6px;transition:.2s}
+.role:hover{border-color:var(--marker);transform:translateY(-3px)}
+.role i{font-style:normal;font-size:28px}
+.role b{font-size:17px}
+.role span{font-size:13px;color:var(--dim);line-height:1.6}
+.role em{font-style:normal;font-size:12px;color:var(--marker);font-weight:700}
+
+/* بحث الحضور */
+.search{display:flex;align-items:center;gap:10px;border:2px solid var(--marker);border-radius:14px;padding:12px 14px;font-family:var(--f-mono);font-size:20px}
+.typed{display:inline-block;overflow:hidden;white-space:nowrap;width:0;border-inline-end:2px solid var(--marker)}
+.scene.on .typed{animation:type 1.2s steps(4) .5s forwards,caret .8s step-end infinite}
+@keyframes caret{50%{border-color:transparent}}
+@keyframes type{to{width:4.2ch}}
+.hit{border:1.5px solid var(--marker)}
+.stamp{font-family:var(--f-display);font-size:22px;color:var(--ok);transform:rotate(-8deg);border:3px solid var(--ok);border-radius:10px;padding:2px 12px}
+.scene.on .stamp{animation:pop .5s both;animation-delay:2.2s}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.kpi{background:#ffffff06;border-radius:12px;padding:10px;text-align:center}
+.kpi b{display:block;font-family:var(--f-display);font-weight:400;font-size:28px}
+.kpi span{font-size:12px;color:var(--dim)}
+
+/* درجات بالقلم الأحمر */
+.mark{font-family:var(--f-display);font-size:26px;color:var(--pen);transform:rotate(-6deg);display:inline-block}
+.scene.on .mark{animation:pop .45s both;animation-delay:calc(var(--d,0) * 1s)}
+.lv{display:flex;height:14px;border-radius:99px;overflow:hidden}
+.lv i{display:block;transform-origin:right}
+.scene.on .lv i{animation:strike .9s cubic-bezier(.2,.8,.2,1) both;animation-delay:1.4s}
+
+/* موبايل واتساب */
+.phone{justify-self:center;width:min(330px,100%);background:#0b141a;border:8px solid #050807;border-radius:34px;padding:14px 10px 18px;display:grid;gap:10px;box-shadow:0 30px 60px #0008}
+.phone .top{display:flex;align-items:center;gap:8px;padding:4px 6px 10px;border-bottom:1px solid #ffffff14;font-size:14px}
+.phone .av{width:30px;height:30px;border-radius:50%;background:var(--wa);display:grid;place-items:center;font-size:14px;color:#05200f;font-weight:700}
+.bub{background:#005c4b;color:#e9fdf5;border-radius:12px 12px 2px 12px;padding:9px 11px;font-size:13px;line-height:1.7;white-space:pre-line;justify-self:end;max-width:92%}
+.bub small{display:block;text-align:start;opacity:.6;font-size:10px;font-family:var(--f-mono)}
+
+/* أعمدة الإيراد */
+.bars{display:flex;align-items:flex-end;gap:6px;height:150px;padding-top:8px;border-bottom:1px solid var(--line)}
+.bars i{flex:1;background:linear-gradient(var(--marker),#c9922a);border-radius:6px 6px 0 0;transform-origin:bottom}
+.scene.on .bars i{animation:grow .8s cubic-bezier(.2,.8,.2,1) both}
+.ag{display:grid;gap:8px}
+.ag .row b{font-family:var(--f-mono)}
+
+/* جدول القاعات */
+.grid{display:grid;grid-template-columns:70px repeat(6,minmax(0,1fr));gap:4px;font-size:11px}
+.grid>div{background:#ffffff05;border-radius:6px;min-height:34px;padding:4px;display:flex;align-items:center;justify-content:center;text-align:center}
+.grid .h{background:none;color:var(--dim);font-weight:700}
+.grid .s{background:#f2c14e22;color:var(--marker);font-weight:700}
+.grid .c{background:#e8553f33;color:var(--pen);font-weight:700;outline:1.5px solid var(--pen)}
+.scene.on .grid .s,.scene.on .grid .c{animation:pop .4s both;animation-delay:calc(var(--d,0) * 1s)}
+
+/* إكسل */
+.xl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px;font-size:12px;font-family:var(--f-mono)}
+.xl div{background:#ffffff08;padding:6px;text-align:center}
+.xl .th{background:#217346;color:#fff;font-family:var(--f-body);font-weight:700}
+.arrow{font-family:var(--f-display);font-size:48px;color:var(--marker);text-align:center}
+
+/* الخطوات الجاية */
+.next{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.next div{border:1px dashed var(--line);border-radius:16px;padding:16px;display:grid;gap:6px}
+.next b{font-size:17px}.next span{font-size:13px;color:var(--dim);line-height:1.7}
+.next em{font-style:normal;font-family:var(--f-mono);font-size:11px;color:var(--marker);letter-spacing:.1em}
+
+/* الختام */
+.outro{text-align:center;justify-items:center}
+.sig{font-family:var(--f-mono);letter-spacing:.5em;font-size:clamp(28px,6vw,64px);font-weight:600;color:var(--marker);padding-inline-start:.5em}
+
+/* الفصل الحالي + الساعة في الشريط اللي فوق */
+.chap{display:flex;align-items:center;gap:10px;min-width:0;font-size:14px}
+.chap b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chap .n{font-family:var(--f-mono);font-size:11px;color:var(--board);background:var(--marker);border-radius:6px;padding:2px 7px;font-weight:600}
+.clock{font-family:var(--f-mono);font-size:13px;color:var(--marker);border:1px solid var(--line);border-radius:8px;padding:2px 8px;white-space:nowrap}
+.clock:empty{display:none}
+@media(max-width:700px){.chap{display:none}}
+
+/* خريطة الرحلة */
+.map{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;counter-reset:ch}
+.stop{background:var(--board2);border:1px solid var(--line);border-radius:18px;padding:18px;text-align:start;display:grid;gap:8px;position:relative;transition:.2s}
+.stop:hover{border-color:var(--marker);transform:translateY(-3px)}
+.stop .num{font-family:var(--f-display);font-size:44px;line-height:1;color:var(--marker)}
+.stop b{font-size:19px}.stop span{font-size:13px;color:var(--dim);line-height:1.7}
+.stop small{font-family:var(--f-mono);font-size:11px;color:var(--dim)}
+
+/* شريط التقدم: مجموعات بالفصول */
+.prog{display:flex;gap:10px;padding-block:10px calc(10px + env(safe-area-inset-bottom,0px))}
+.pg{display:grid;gap:5px;min-width:0}
+.pg .bs{display:flex;gap:3px}
+.pg>span{font-size:11px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pg.cur>span{color:var(--marker);font-weight:700}
+@media(max-width:560px){.pg>span{display:none}}
+.prog button{flex:1;height:6px;border:0;border-radius:99px;background:var(--line);padding:0;position:relative;overflow:hidden}
+.prog button i{position:absolute;inset:0;background:var(--marker);transform-origin:right;transform:scaleX(0)}
+.prog button.done i{transform:scaleX(1)}
+.prog button.cur i{animation:fill var(--dur,8s) linear forwards}
+.paused .prog button.cur i{animation-play-state:paused}
+@keyframes fill{to{transform:scaleX(1)}}
+
+/* نافذة الديمو */
+.ov{position:fixed;inset:0;background:#000b;display:grid;place-items:center;z-index:20;padding:max(12px,env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) max(12px,env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px))}
+.ov[hidden]{display:none}
+.win{width:min(1200px,100%);height:100%;max-height:900px;background:var(--board2);border:1px solid var(--line);border-radius:18px;display:grid;grid-template-rows:auto 1fr;overflow:hidden;animation:pop .35s both}
+.win header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.win header b{font-size:15px}.win header small{color:var(--dim);font-size:12px;display:block}
+.win header button{background:var(--marker);color:#1a1405;border:0;border-radius:10px;padding:8px 14px;font-weight:700}
+.win iframe{width:100%;height:100%;border:0;background:#f4f6fb}
+
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01s!important;animation-delay:0s!important;transition:none!important}.scene.on .typed{width:4.2ch}}
+@media(max-width:560px){.kpis{grid-template-columns:repeat(3,1fr)}.grid{grid-template-columns:44px repeat(6,minmax(0,1fr));font-size:9px}.ctrls .lbl{display:none}}
+</style>
+
+<div class="app" id="app" dir="rtl" lang="ar">
+  <div class="bar">
+    <div class="brand">POWERED BY <b>HENDAWY</b></div>
+    <div class="chap" id="chap"></div>
+    <div class="ctrls">
+      <button id="prev" aria-label="المشهد اللي فات">→</button>
+      <button id="play" aria-label="تشغيل / إيقاف"><span id="pi">❚❚</span> <span class="lbl">تلقائي</span></button>
+      <button id="next" aria-label="المشهد الجاي">←</button>
+      <span class="count mono" id="count"></span>
+    </div>
+  </div>
+
+  <main class="stage" id="stage">
+
+    <!-- ===== المقدمة ===== -->
+    <section class="scene" data-ch="0" data-dur="6">
+      <div class="wrap intro">
+        <div class="eyebrow a">سيستم إدارة السناتر التعليمية</div>
+        <h1 class="w" style="--d:.2">السنتر كله<br><span class="hl">في إيدك.</span></h1>
+        <p class="lead a" style="--d:1.2">حضور، فلوس، درجات، رسايل، وحسابات السنتر. سيستم واحد.</p>
+        <div class="stats">
+          <div class="stat a" style="--d:1.5"><b class="mono" data-count="5">5</b><span>أدوار</span></div>
+          <div class="stat a" style="--d:1.65"><b class="mono" data-count="3">3</b><span>ثواني لتسجيل الطالب</span></div>
+          <div class="stat a" style="--d:1.8"><b class="mono">0 ج</b><span>تكلفة استضافة</span></div>
+          <div class="stat a" style="--d:1.95"><b class="mono">AR·EN</b><span>عربي وإنجليزي</span></div>
+        </div>
+        <div class="powered a" style="--d:2.2">POWERED BY <b>HENDAWY</b></div>
+      </div>
+    </section>
+
+    <section class="scene" data-ch="0" data-dur="7">
+      <div class="wrap two">
+        <div class="copy">
+          <div class="eyebrow a">المشكلة</div>
+          <h2 class="w" style="--d:.1">كشوف ورق<br>وحسابات <span class="red">على الذاكرة</span></h2>
+        </div>
+        <div class="probs">
+          <div class="prob a" style="--d:.4">الأسيستنت بينده على 120 اسم من كشف ورق</div>
+          <div class="prob a" style="--d:.8">مين دفع ومين عليه فلوس؟ محدش متأكد</div>
+          <div class="prob a" style="--d:1.2">ولي الأمر بيعرف إن ابنه غايب بعد شهر</div>
+          <div class="prob a" style="--d:1.6">حق السنتر بيتحسب بالآلة الحاسبة</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="scene" data-ch="0" data-dur="7">
+      <div class="wrap">
+        <div class="copy">
+          <div class="eyebrow a">الحل</div>
+          <h2 class="w" style="--d:.1">سيستم واحد، <span class="hl">5 أدوار</span></h2>
+          <p class="lead a" style="--d:.5">كل واحد بيدخل بحسابه ويشوف اللي يخصه بس. دوس على أي دور وجرّبه.</p>
+        </div>
+        <div class="roles">
+          <button class="role a" style="--d:.7" data-demo="owner-o_dash" data-t="صاحب السنتر"><i>🏢</i><b>صاحب السنتر</b><span>كل المدرسين، الدخل والمصاريف والقاعات</span><em>جرّب ←</em></button>
+          <button class="role a" style="--d:.85" data-demo="teacher-dash" data-t="المدرس"><i>👨‍🏫</i><b>المدرسين</b><span>كل مدرس ليه طلابه وإيراده ورسايله</span><em>جرّب ←</em></button>
+          <button class="role a" style="--d:1" data-demo="assistant-att" data-t="الأسيستنت"><i>🧑‍💼</i><b>الأسيستنتس</b><span>أكتر من أسيستنت لكل مدرس، بيسجّلوا ويبعتوا الرسايل</span><em>جرّب ←</em></button>
+          <button class="role a" style="--d:1.15" data-demo="student-portal" data-t="الطالب"><i>🎒</i><b>الطالب</b><span>حضوره ودرجاته</span><em>جرّب ←</em></button>
+          <button class="role a" style="--d:1.3" data-demo="parent-portal" data-t="ولي الأمر"><i>👪</i><b>ولي الأمر</b><span>كل ولاده في مكان واحد</span><em>جرّب ←</em></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="scene" data-ch="0" data-dur="7">
+      <div class="wrap">
+        <div class="copy">
+          <div class="eyebrow a">الرحلة</div>
+          <h2 class="w" style="--d:.1">هنمشي مع السنتر <span class="hl">خطوة خطوة</span></h2>
+        </div>
+        <div class="map">
+          <button class="stop a" style="--d:.5" data-go="1"><div class="num">1</div><b>يوم في السنتر</b><span>من قبل الحصة لحد ما الرسايل توصل للبيت</span><small>3:30 م ← 5:00 م</small></button>
+          <button class="stop a" style="--d:.7" data-go="2"><div class="num">2</div><b>آخر الشهر</b><span>الديون، وصافي المدرس، وربح السنتر</span><small>تقارير</small></button>
+          <button class="stop a" style="--d:.9" data-go="3"><div class="num">3</div><b>في البيت</b><span>الطالب وولي الأمر بيتابعوا من الموبايل</span><small>بوابة</small></button>
+          <button class="stop a" style="--d:1.1" data-go="4"><div class="num">4</div><b>إزاي نبدأ</b><span>من شيت الإكسل للسنتر الحقيقي</span><small>تشغيل</small></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 1 · يوم في السنتر ===== -->
+    <section class="scene" data-ch="1" data-time="3:30 م" data-dur="7">
+      <div class="wrap two">
+        <div class="copy">
+          <div class="eyebrow a">قبل الحصة · القاعات</div>
+          <h2 class="w" style="--d:.1">مفيش قاعة<br><span class="red">تتحجز مرتين</span></h2>
+          <p class="lead a" style="--d:.5">جدول الأسبوع قدامك، والسيستم يرفض أي مجموعة في قاعة محجوزة.</p>
+          <button class="demo a" style="--d:.9" data-demo="owner-o_rooms" data-t="القاعات والجدول">افتح الجدول</button>
+        </div>
+        <div class="sheet a" style="--d:.3;overflow-x:auto">
+          <div class="grid">
+            <div class="h"></div><div class="h">السبت</div><div class="h">الأحد</div><div class="h">الاثنين</div><div class="h">الثلاثاء</div><div class="h">الأربعاء</div><div class="h">الخميس</div>
+            <div class="h mono">2:00</div><div class="s" style="--d:.6">ق1 فيزياء</div><div></div><div class="s" style="--d:.7">ق2 عربي</div><div></div><div class="s" style="--d:.8">ق3 رياضة</div><div></div>
+            <div class="h mono">4:00</div><div class="s" style="--d:.9">ق2 كيمياء</div><div class="s" style="--d:1">ق1 أحياء</div><div></div><div class="s" style="--d:1.1">ق1 فيزياء</div><div></div><div class="s" style="--d:1.2">ق4 إنجليزي</div>
+            <div class="h mono">6:00</div><div></div><div class="s" style="--d:1.3">ق3 عربي</div><div class="c" style="--d:1.9">ق2 تعارض!</div><div></div><div class="s" style="--d:1.4">ق2 أحياء</div><div></div>
+            <div class="h mono">8:00</div><div class="s" style="--d:1.5">ق4 رياضة</div><div></div><div></div><div class="s" style="--d:1.6">ق3 كيمياء</div><div></div><div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="scene" data-ch="1" data-time="4:00 م" data-dur="8">
+      <div class="wrap two">
+        <div class="copy">
+          <div class="eyebrow a">الطالب داخل · تسجيل الحصة</div>
+          <h2 class="w" style="--d:.1">الكشف كله<br><span class="hl">في شاشة واحدة</span></h2>
+          <p class="lead a" style="--d:.5">حضر / غاب، والدفع، وكويز من 20، وامتحان من 50، والبنين والبنات لوحدهم. والطالب اللي داخل بأي ترتيب تكتب كوده أو أول اسمه وEnter.</p>
+          <button class="demo a" style="--d:.9" data-demo="assistant-att" data-t="تسجيل الحصة">جرّب تسجيل الحصة</button>
+        </div>
+        <div class="sheet a" style="--d:.3">
+          <h4>3 ثانوي · مجموعة أ — 💾 تسجيل اليوم</h4>
+          <div class="search"><span>🔎</span><span class="typed">1025</span></div>
+          <div class="row hit a" style="--d:1.8"><div><b>آدم حسين حمزة النجار</b><small>1025</small></div><span class="stamp">حضر ✓</span></div>
+          <div class="row a" style="--d:2"><div><b>يوسف عادل محمود</b><small>حضر · كويز <span class="mono">17/20</span> · امتحان <span class="mono">42/50</span></small></div><span class="pill p-ok">دفع</span></div>
+          <div class="row a" style="--d:2.1"><div><b>مريم سالم البنا</b><small>حضر · كويز <span class="mono">12/20</span></small></div><span class="pill p-wa">آجل</span></div>
+          <div class="row a" style="--d:2.2"><div><b>عمر هاني سليمان</b><small>غاب</small></div><span class="pill p-bad">غاب</span></div>
+          <div class="kpis a" style="--d:2.3"><div class="kpi"><b class="mono">18<span style="font-size:14px;color:var(--dim)">/24</span></b><span>حاضرون</span></div><div class="kpi"><b class="mono">1,360</b><span>محصّل اليوم</span></div><div class="kpi"><b class="mono">6</b><span>غائبون</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="scene" data-ch="1" data-time="4:03 م" data-dur="7">
+      <div class="wrap two">
+        <div class="copy">
+          <div class="eyebrow a">طالب جديد على الباب</div>
+          <h2 class="w" style="--d:.1">طالب جديد؟<br><span class="hl">ثواني</span></h2>
+          <p class="lead a" style="--d:.5">الكود بيطلع لوحده. ولو رقمه موجود، السيستم بيربطه بحسابه القديم بدل ما يكرره.</p>
+          <button class="demo a" style="--d:.9" data-demo="teacher-students" data-t="الطلاب">افتح الطلاب</button>
+        </div>
+        <div class="sheet a" style="--d:.3">
+          <h4>➕ طالب جديد</h4>
+          <div class="row a" style="--d:.7"><span style="color:var(--dim)">الاسم</span><b>شهد مازن خالد عثمان</b></div>
+          <div class="row a" style="--d:.85"><span style="color:var(--dim)">رقم الطالب</span><b class="mono">01112345678</b></div>
+          <div class="row a" style="--d:1.2;border:1.5px solid var(--marker)"><div><b>الرقم ده لطالبة موجودة</b><small>كود 1207 · بتاخد كيمياء</small></div><span class="pill p-ok">ضيفها للمجموعة</span></div>
+          <div class="row a" style="--d:1.5"><span style="color:var(--dim)">النتيجة</span><b>حساب واحد · مدرسين اتنين</b></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="scene" data-ch="1" data-time="4:05 م" data-dur="7">
+      <div class="wrap two">
+        <div class="copy">
+          <div class="eyebrow a">طالب من مجموعة تانية</div>
+          <h2 class="w" style="--d:.1">غاب السبت؟<br><span class="hl">يعوّض الثلاثاء</span></h2>
+          <p class="lead a" style="--d:.5">بيتسجل تعويض لوحده، وحسابه وفلوسه يفضلوا واحد.</p>
+          <button class="demo a" style="--d:.9" data-demo="assistant-att" data-t="الحضور والتعويض">جرّب</button>
+        </div>
+        <div class="sheet a" style="--d:.3">
+          <h4>3 ثانوي · مجموعة ب — الثلاثاء</h4>
+          <div class="row a" style="--d:.8"><div><b>سارة إبراهيم الجمال</b><small>1102 · 4:02</small></div><span class="pill p-ok">✓ دفع</span></div>
+          <div class="row hit a" style="--d:1.3"><div><b>عمر هاني سليمان</b><small>1088 · 4:05</small></div><span class="pill p-wa">تعويض من مجموعة أ</span></div>
+          <div class="row a" style="--d:1.6"><div><b>نور صلاح عيسى</b><small>1140 · 4:06</small></div><span class="pill p-ok">✓ دفع</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="scene" data-ch="1" data-time="4:40 م" data-dur="7">
+      <div class="wrap two">
+        <div class="copy">
+          <div class="eyebrow a">آخر الحصة · الكويز</div>
+          <h2 class="w" style="--d:.1">الدرجة بتتكتب<br><span class="hl">في نفس الشاشة</span></h2>
+          <p class="lead a" style="--d:.5">كويز أو امتحان أو واجب، والمستوى بيتحسب لوحده.</p>
+          <button class="demo a" style="--d:.9" data-demo="teacher-grades" data-t="الدرجات">جرّب الدرجات</button>
+        </div>
+        <div class="sheet a" style="--d:.3">
+          <h4>كويز اليوم — من 20</h4>
+          <div class="row"><b>جنى عبدالله الشافعي</b><span class="mark mono" style="--d:.9">19</span></div>
+          <div class="row"><b>حمزة سمير عطية</b><span class="mark mono" style="--d:1.1">14</span></div>
+          <div class="row"><b>فرح وليد منصور</b><span class="mark mono" style="--d:1.3">8</span></div>
+          <h4 style="margin-top:6px">مستوى المجموعة</h4>
+          <div class="lv"><i style="flex:35;background:var(--ok)"></i><i style="flex:40;background:#7cc4e8"></i><i style="flex:35;background:var(--marker)"></i><i style="flex:31;background:var(--pen)"></i></div>
+          <div class="row" style="background:none;padding:0;font-size:12px;color:var(--dim)"><span>ممتاز</span><span>جيد</span><span>مقبول</span><span>ضعيف</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="scene" data-ch="1" data-time="5:00 م" data-dur="8">
+      <div class="wrap two">
+        <div class="copy">
+          <div class="eyebrow a">بعد الحصة · الرسايل</div>
+          <h2 class="w" style="--d:.1">ولي الأمر يعرف<br><span class="hl">في نفس اليوم</span></h2>
+          <p class="lead a" style="--d:.5">"تسجيل اليوم" وتطلع رسايل الغياب والتقارير على الواتساب، للطالب أو ولي الأمر أو الاتنين. والرسالة تبقى: التقرير بس، أو التقرير + رسالتك، أو رسالة المستوى، أو رسالتك بس، بالدرجات أو من غيرها.</p>
+          <div class="demos a" style="--d:.9"><button class="demo" data-demo="teacher-students" data-t="رسالة لطالب">رسالة لطالب</button><button class="demo ghost" data-demo="teacher-msgs" data-t="رسالة من المدرس">رسالة من المدرس</button></div>
+        </div>
+        <div class="phone a" style="--d:.3">
+          <div class="top"><span class="av">ه</span><div><b>سنتر هنداوي</b><br><small style="color:var(--dim)">متصل الآن</small></div></div>
+          <div class="bub a" style="--d:1">السلام عليكم أ/ حسين البنا
+نحيطكم علماً بغياب الطالب آدم حسين اليوم عن حصة فيزياء.<small>5:00 م ✓✓</small></div>
+          <div class="bub a" style="--d:2">تقرير حصة اليوم — فيزياء
+• الحضور: حاضر ✅
+• كويز اليوم: 17/20
+• المتوسط: 81% (جيد)<small>5:01 م ✓✓</small></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 2 · آخر الشهر ===== -->
+    <section class="scene" data-ch="2" data-dur="7">
+      <div class="wrap two">
+        <div class="copy">
+          <div class="eyebrow a">الدفع</div>
+          <h2 class="w" style="--d:.1">شهري <span class="hl">أو</span><br>بالحصة</h2>
+          <p class="lead a" style="--d:.5">كل مجموعة تختار نظامها، أو تقلب كل المجموعات بدوسة. والطالب اللي ما دفعش يتسجّل آجل ويبان في ملفه.</p>
+          <button class="demo a" style="--d:.9" data-demo="assistant-att" data-t="الدفع">جرّب</button>
+        </div>
+        <div class="sheet a" style="--d:.3">
+          <h4>كل المجموعات: شهري · بالحصة</h4>
+          <div class="row a" style="--d:.8"><div><b>إنجليزي · 3 ثانوي</b><small>شهري · 300 ج</small></div><span class="pill p-ok">الشهر مدفوع 31/36</span></div>
+          <div class="row a" style="--d:1"><div><b>فيزياء · 3 ثانوي</b><small>بالحصة · 80 ج</small></div><span class="pill p-ok">دفع 22 · آجل 2</span></div>
+          <div class="row a" style="--d:1.2"><div><b>كيمياء · 2 ثانوي</b><small>شهري · 260 ج</small></div><span class="pill p-wa">غير مدفوع 4</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="scene" data-ch="2" data-dur="7">
+      <div class="wrap two">
+        <div class="copy">
+          <div class="eyebrow a">لوحة المدرس</div>
+          <h2 class="w" style="--d:.1">صافيه<br><span class="hl">من غير آلة حاسبة</span></h2>
+          <p class="lead a" style="--d:.5">الإيراد، وحق السنتر حسب اتفاقه، وأجر الأسيستنت، والصافي، والآجل اللي لسه ما اتحصّلش.</p>
+          <button class="demo a" style="--d:.9" data-demo="teacher-dash" data-t="لوحة المدرس">افتح لوحة المدرس</button>
+        </div>
+        <div class="sheet a" style="--d:.3">
+          <div class="kpis"><div class="kpi"><b class="mono" data-count="30230">30,230</b><span>الإيراد</span></div><div class="kpi"><b class="mono" data-count="6046">6,046</b><span>حق السنتر 20%</span></div><div class="kpi"><b class="mono" data-count="3000">3,000</b><span>أجر الأسيستنت</span></div></div>
+          <div class="row a" style="--d:.9;border:1.5px solid var(--marker)"><b>صافي المدرس</b><b class="mono hl" data-count="21184">21,184</b></div>
+          <h4>الإيراد آخر 14 يوم</h4>
+          <div class="bars"><i style="height:40%;animation-delay:.6s"></i><i style="height:0%"></i><i style="height:70%;animation-delay:.7s"></i><i style="height:55%;animation-delay:.75s"></i><i style="height:0%"></i><i style="height:85%;animation-delay:.85s"></i><i style="height:45%;animation-delay:.9s"></i><i style="height:60%;animation-delay:.95s"></i><i style="height:0%"></i><i style="height:75%;animation-delay:1.05s"></i><i style="height:50%;animation-delay:1.1s"></i><i style="height:95%;animation-delay:1.15s"></i><i style="height:35%;animation-delay:1.2s"></i><i style="height:65%;animation-delay:1.25s"></i></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="scene" data-ch="2" data-dur="8">
+      <div class="wrap two">
+        <div class="copy">
+          <div class="eyebrow a">مستوى الطلاب</div>
+          <h2 class="w" style="--d:.1">رسالة لكل فئة<br><span class="hl">بدوسة واحدة</span></h2>
+          <p class="lead a" style="--d:.5">المتفوقين، واللي بيتحسنوا، واللي بيتراجعوا، والأضعف. كل فئة ليها رسالة جاهزة للطالب ولولي الأمر، أو تكتب رسالة جديدة.</p>
+          <button class="demo a" style="--d:.9" data-demo="teacher-msgs" data-t="رسايل حسب الفئة">جرّب</button>
+        </div>
+        <div class="sheet a" style="--d:.3">
+          <div class="row a" style="--d:.6"><b>🏆 المتفوقون</b><span class="pill p-ok">مبروك يا {الاسم}! مستواك ممتاز 🌟</span></div>
+          <div class="row a" style="--d:.8"><b>📈 في تحسن</b><span class="pill p-ok">مستواك في تحسن ملحوظ، كمّل 👏</span></div>
+          <div class="row a" style="--d:1"><b>📉 في تراجع</b><span class="pill p-wa">ركّز معانا وهنساعدك ترجع أقوى</span></div>
+          <div class="row a" style="--d:1.2"><b>⚠️ الأضعف</b><span class="pill p-bad">تعالى نذاكر سوا ونظبط الموضوع</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="scene" data-ch="2" data-dur="8">
+      <div class="wrap two">
+        <div class="copy">
+          <div class="eyebrow a">لوحة صاحب السنتر</div>
+          <h2 class="w" style="--d:.1">كل مدرس<br><span class="hl">باتفاقه</span></h2>
+          <p class="lead a" style="--d:.5">حق السنتر من كل مدرس، ناقص المصاريف، يطلعلك صافي الربح.</p>
+          <div class="demos a" style="--d:.9"><button class="demo" data-demo="owner-o_dash" data-t="لوحة صاحب السنتر">افتح لوحة السنتر</button><button class="demo ghost" data-demo="owner-o_exp" data-t="المصاريف">المصاريف</button></div>
+        </div>
+        <div class="sheet a" style="--d:.3">
+          <h4>حق السنتر — الشهر ده</h4>
+          <div class="ag">
+            <div class="row a" style="--d:.7"><div><b>أ/ محمد حسن</b><small>نسبة 20%</small></div><b class="mono">6,046 ج</b></div>
+            <div class="row a" style="--d:.85"><div><b>أ/ سامح فؤاد</b><small>10 ج على كل طالب</small></div><b class="mono">3,120 ج</b></div>
+            <div class="row a" style="--d:1"><div><b>أ/ هبة عادل</b><small>إيجار قاعة للحصة</small></div><b class="mono">4,800 ج</b></div>
+            <div class="row a" style="--d:1.15"><div><b>Mr. أشرف كمال</b><small>إيجار شهري</small></div><b class="mono">3,000 ج</b></div>
+            <div class="row a" style="--d:1.4;border:1.5px solid var(--marker)"><div><b>صافي ربح السنتر</b><small>بعد المصاريف</small></div><b class="mono hl" data-count="12601">12,601 ج</b></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 3 · في البيت ===== -->
+    <section class="scene" data-ch="3" data-dur="8">
+      <div class="wrap two">
+        <div class="copy">
+          <div class="eyebrow a">بوابة الطالب وولي الأمر</div>
+          <h2 class="w" style="--d:.1">ولي الأمر<br><span class="hl">بيتابع من موبايله</span></h2>
+          <p class="lead a" style="--d:.5">الحضور والدرجات والإعلانات، لكل ولاده ومع كل مدرسينهم.</p>
+          <div class="demos a" style="--d:.9"><button class="demo" data-demo="parent-portal" data-t="بوابة ولي الأمر">بوابة ولي الأمر</button><button class="demo ghost" data-demo="student-portal" data-t="بوابة الطالب">بوابة الطالب</button></div>
+        </div>
+        <div class="phone a" style="--d:.3;background:var(--board)">
+          <div class="top"><span class="av" style="background:var(--marker)">👪</span><div><b>ولي أمر يوسف</b><br><small style="color:var(--dim)">كود 1001 · 3 ثانوي</small></div></div>
+          <div class="row a" style="--d:.9"><div><b>فيزياء</b><small>أ/ محمد حسن</small></div><span class="pill p-ok">حضور 92%</span></div>
+          <div class="row a" style="--d:1.05"><div><b>كيمياء</b><small>أ/ سامح فؤاد</small></div><span class="pill p-wa">متوسط 68%</span></div>
+          <div class="row a" style="--d:1.2"><div><b>📢 امتحان شامل الأسبوع الجاي</b><small>أ/ محمد حسن</small></div></div>
+          <div class="row a" style="--d:1.35"><div><b>📄 مذكرة المراجعة</b><small>PDF</small></div><span class="pill p-mu">فتح</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 4 · إزاي نبدأ ===== -->
+    <section class="scene" data-ch="4" data-dur="7">
+      <div class="wrap two">
+        <div class="copy">
+          <div class="eyebrow a">من الإكسل</div>
+          <h2 class="w" style="--d:.1">شيتاتك القديمة<br><span class="hl">في دقيقة</span></h2>
+          <p class="lead a" style="--d:.5">املا القالب مرة واحدة وارفعه، والسيستم يراجع الأخطاء قبل الاستيراد.</p>
+          <button class="demo a" style="--d:.9" data-demo="owner-o_data" data-t="البيانات والاستيراد">شوف شاشة البيانات</button>
+        </div>
+        <div class="copy">
+          <div class="xl a" style="--d:.4"><div class="th">الكود</div><div class="th">الاسم</div><div class="th">الصف</div><div class="th">المجموعة</div><div>1001</div><div>يوسف أحمد</div><div>3 ث</div><div>G01</div><div>1002</div><div>سارة علي</div><div>2 ث</div><div>G07</div><div>1003</div><div>مازن حسن</div><div>1 ث</div><div>G12</div></div>
+          <div class="arrow a" style="--d:1">↓</div>
+          <div class="stats a" style="--d:1.3"><div class="stat"><b class="mono">6</b><span>مدرسين</span></div><div class="stat"><b class="mono">24</b><span>مجموعة</span></div><div class="stat"><b class="mono">420</b><span>طالب</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="scene" data-ch="4" data-dur="8">
+      <div class="wrap two">
+        <div class="copy">
+          <div class="eyebrow a">أونلاين</div>
+          <h2 class="w" style="--d:.1">كل الأجهزة<br><span class="hl">نفس البيانات</span></h2>
+          <p class="lead a" style="--d:.5">الداتابيز على Supabase، وكلمات السر متشفّرة، وكل واحد بياخد اللي يخصه بس. ولو النت فصل، التسجيل بيكمل ويتبعت لما يرجع. وشيت جوجل بيتحدّث لوحده كل 10 دقايق للعرض.</p>
+        </div>
+        <div class="sheet a" style="--d:.3">
+          <div class="row a" style="--d:.6"><div><b>☁️ Supabase</b><small>الداتابيز · الدخول · الصلاحيات</small></div><span class="pill p-ok">متزامن</span></div>
+          <div class="row a" style="--d:.8"><div><b>📊 Google Sheets</b><small>تاب لكل مجموعة: ح / غ يوم بيوم</small></div><span class="pill p-ok">لايف</span></div>
+          <div class="row a" style="--d:1"><div><b>🌐 GitHub Pages</b><small>الموقع نفسه، ببلاش</small></div><span class="pill p-ok">0 ج</span></div>
+          <div class="row a" style="--d:1.2"><div><b>🌍 عربي · English</b><small>زرار واحد يقلب اللغة</small></div><span class="pill p-mu">EN</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="scene" data-ch="4" data-dur="9">
+      <div class="wrap">
+        <div class="copy">
+          <div class="eyebrow a">الجاي</div>
+          <h2 class="w" style="--d:.1">من الديمو <span class="hl">للسنتر الحقيقي</span></h2>
+        </div>
+        <div class="next">
+          <div class="a" style="--d:.5"><em>جاهز</em><b>أونلاين + شيتات لايف</b><span>Supabase وGoogle Sheets متربطين.</span></div>
+          <div class="a" style="--d:.65"><em>الجاي</em><b>واتساب أوتوماتيك</b><span>الرسايل تتبعت لوحدها بدوسة واحدة.</span></div>
+          <div class="a" style="--d:.8"><em>بعد كده</em><b>كارنيه QR</b><span>سكان بالموبايل على الباب.</span></div>
+          <div class="a" style="--d:.95"><em>بعد كده</em><b>أبلكيشن على المتاجر</b><span>Google Play و App Store.</span></div>
+        </div>
+        <div class="outro a" style="--d:1.4;margin-top:10px">
+          <div class="sig">HENDAWY</div>
+          <div class="powered">POWERED BY <b>HENDAWY</b> · نسخة مخصوصة لكل سنتر</div>
+          <div class="demos" style="justify-content:center;margin-top:12px"><button class="demo" data-demo="owner-o_dash" data-t="السيستم كامل">جرّب السيستم كامل</button></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="prog" id="prog" aria-label="فصول العرض"></nav>
+</div>
+
+<div class="ov" id="ov" dir="rtl" lang="ar" hidden>
+  <div class="win" role="dialog" aria-modal="true" aria-labelledby="ovt">
+    <header><div><b id="ovt">ديمو</b><small>ديمو حي ببيانات تجريبية · كلمة السر لكل الحسابات 1234</small></div><button id="ovx">✕ رجوع للعرض</button></header>
+    <iframe id="frame" title="ديمو السيستم"></iframe>
+  </div>
+</div>
+
+<script>
+(function () {
+  const CH = ['المقدمة', 'يوم في السنتر', 'آخر الشهر', 'في البيت', 'إزاي نبدأ'];
+  const scenes = [...document.querySelectorAll('.scene')], prog = document.getElementById('prog'), app = document.getElementById('app');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let cur = 0, playing = !reduce, timer = null, t0 = 0, left = 0;
+
+  // شريط التقدم مقسوم بالفصول
+  const bars = [], groups = [];
+  scenes.forEach((s, i) => {
+    const ch = +s.dataset.ch;
+    if (!groups[ch]) { const g = document.createElement('div'); g.className = 'pg'; g.style.flex = scenes.filter(x => +x.dataset.ch === ch).length; g.innerHTML = '<div class="bs"></div><span>' + CH[ch] + '</span>'; prog.appendChild(g); groups[ch] = g; }
+    const b = document.createElement('button'); b.setAttribute('aria-label', CH[ch] + ' · مشهد ' + (i + 1)); b.innerHTML = '<i></i>'; b.onclick = () => go(i);
+    groups[ch].querySelector('.bs').appendChild(b); bars.push(b);
+  });
+
+  function count(el) {
+    if (reduce) return;
+    const n = +el.dataset.count, suf = el.textContent.replace(/[\d,]/g, ''), st = performance.now();
+    (function f(now) { const p = Math.min(1, (now - st) / 1100); el.textContent = Math.round(n * (1 - Math.pow(1 - p, 3))).toLocaleString('en-US') + suf; if (p < 1) requestAnimationFrame(f); })(st);
+  }
+  function arm(ms) { clearTimeout(timer); t0 = Date.now(); left = ms; if (playing) timer = setTimeout(() => go(cur + 1 < scenes.length ? cur + 1 : 0), ms); }
+  function go(i) {
+    scenes[cur].classList.remove('on');
+    cur = (i + scenes.length) % scenes.length;
+    const s = scenes[cur], ch = +s.dataset.ch; void s.offsetWidth; s.classList.add('on'); s.scrollTop = 0;
+    const dur = (+s.dataset.dur || 8);
+    bars.forEach((b, j) => { b.className = j < cur ? 'done' : j === cur ? 'cur' : ''; b.style.setProperty('--dur', dur + 's'); });
+    groups.forEach((g, j) => g.classList.toggle('cur', j === ch));
+    const c = bars[cur].querySelector('i'); c.style.animation = 'none'; void c.offsetWidth; c.style.animation = '';
+    const inCh = scenes.filter(x => +x.dataset.ch === ch), k = inCh.indexOf(s) + 1;
+    document.getElementById('chap').innerHTML = ch ? '<span class="n">الفصل ' + ch + '</span><b>' + CH[ch] + '</b><span class="clock">' + (s.dataset.time || '') + '</span>' : '<b>' + CH[0] + '</b>';
+    document.getElementById('count').textContent = k + ' / ' + inCh.length;
+    s.querySelectorAll('[data-count]').forEach(count);
+    arm(dur * 1000);
+  }
+  function setPlay(p) {
+    playing = p; app.classList.toggle('paused', !p); document.getElementById('pi').textContent = p ? '❚❚' : '▶';
+    if (p) arm(left > 0 ? left : 4000); else { clearTimeout(timer); left = Math.max(0, left - (Date.now() - t0)); }
+  }
+  document.getElementById('next').onclick = () => go(cur + 1);
+  document.getElementById('prev').onclick = () => go(cur - 1);
+  document.getElementById('play').onclick = () => setPlay(!playing);
+
+  // الديمو جوه نافذة
+  const ov = document.getElementById('ov'), frame = document.getElementById('frame');
+  let was = false;
+  function openDemo(key, title) {
+    was = playing; setPlay(false);
+    document.getElementById('ovt').textContent = 'ديمو: ' + title;
+    frame.src = 'about:blank';
+    // على claude.ai السيستم جنب العرض في app/، وعلى GitHub العرض جوه فولدر presentation/
+    const base = /github\.io$/.test(location.hostname) ? '../index.html?demo=1' : 'app/index.html';
+    setTimeout(() => { frame.src = base + '#demo-' + key; }, 30);
+    ov.hidden = false; document.getElementById('ovx').focus();
+  }
+  function closeDemo() { ov.hidden = true; frame.src = 'about:blank'; if (was) setPlay(true); }
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-demo]'); if (b) return openDemo(b.dataset.demo, b.dataset.t || '');
+    const g = e.target.closest('[data-go]'); if (g) go(scenes.findIndex(x => x.dataset.ch === g.dataset.go));
+  });
+  document.getElementById('ovx').onclick = closeDemo;
+  ov.addEventListener('mousedown', e => { if (e.target === ov) closeDemo(); });
+  document.addEventListener('keydown', e => {
+    if (!ov.hidden) { if (e.key === 'Escape') closeDemo(); return; }
+    if (e.key === 'ArrowLeft' || e.key === 'PageDown') go(cur + 1);
+    else if (e.key === 'ArrowRight' || e.key === 'PageUp') go(cur - 1);
+    else if (e.key === ' ') { e.preventDefault(); setPlay(!playing); }
+  });
+  let sx = null;
+  document.getElementById('stage').addEventListener('touchstart', e => { sx = e.touches[0].clientX; }, { passive: true });
+  document.getElementById('stage').addEventListener('touchend', e => { if (sx === null) return; const dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 50) go(dx > 0 ? cur + 1 : cur - 1); sx = null; });
+
+  app.classList.toggle('paused', !playing);
+  if (!playing) document.getElementById('pi').textContent = '▶';
+  go(0);
+})();
+</script>
