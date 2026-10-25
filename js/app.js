@@ -1,6 +1,7 @@
 // الهيكل العام: تسجيل الدخول، القوائم، التنقل بين الشاشات
 const V = {}; // كل شاشة دالة بترجع HTML (متعرفة في staff.js / owner.js / portal.js)
 const SES_KEY = Sync.live ? 'center_session_live' : 'center_session_v2'; // جلسة الأونلاين منفصلة عن الديمو
+const HDW_URL = 'https://ahmedelhendway0-byte.github.io/portfolio/'; // موقع HINDAWY: كلمة HENDAWY و«اعرف أكتر» بيودّوا عليه
 
 const App = {
   ses: null,   // {role, id, a?, as?}  role: owner | teacher | assistant | student | parent
@@ -68,7 +69,12 @@ const App = {
   },
   paint(h) { document.getElementById('app').innerHTML = h; },
   tools() { return '<button class="ic" onclick="App.lang()">' + (I18N.lang === 'ar' ? 'EN' : 'عربي') + '</button><button class="ic" onclick="App.theme()" title="🌓">🌓</button>'; },
-  bare(body) { return '<div class="ctl end">' + App.tools().replace(/class="ic"/g, 'class="b"') + '</div>' + body; },
+  bare(body) { return '<div class="ctl end">' + App.tools().replace(/class="ic"/g, 'class="b"') + '</div>' + body + App.pw(); },
+  // POWERED BY HENDAWY في آخر كل شاشة (لكل الأدوار وصفحة الدخول)، وبيفتح موقع HINDAWY في تاب جديدة
+  pw() {
+    const a = ' href="' + HDW_URL + '" target="_blank" rel="noopener"';
+    return '<footer class="pw"><a' + a + '>POWERED BY <b>HENDAWY</b></a><a class="more"' + a + '>' + tr('اعرف أكتر', 'Learn more') + '</a></footer>';
+  },
   shell(body) {
     const s = App.ses, r = s.role, T = App.T();
     const who = r === 'owner' ? tr('صاحب السنتر', 'Center owner') : r === 'teacher' ? T.name + ' · ' + T.subject
@@ -77,7 +83,7 @@ const App = {
     return '<header class="top"><div><h1>' + U.esc(DB.center.name) + '</h1><small>' + U.esc(who) + '</small></div><div class="ctl">' + back + App.tools() +
       (window.Sync ? Sync.badge() : '') + '<button class="ic" onclick="App.logout()">' + tr('خروج', 'Logout') + '</button></div></header>' +
       '<nav class="tabs">' + App.nav().map(n => '<a href="#' + n[0] + '" class="' + (n[0] === App.view ? 'on' : '') + '">' + n[1] + '</a>').join('') + '</nav>' +
-      '<main>' + body + '</main><footer class="pw">POWERED BY <b>HENDAWY</b></footer>';
+      '<main>' + body + '</main>' + App.pw();
   },
   refresh() { Store.save(); App.render(); },
   lang() { I18N.toggle(); App.ses ? App.render() : App.go(''); },

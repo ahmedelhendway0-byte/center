@@ -115,7 +115,9 @@ input[type=number]{-moz-appearance:textfield}input::-webkit-outer-spin-button,in
 .dt{max-height:230px;overflow:auto;background:var(--bg);border-radius:12px;padding:8px 12px;margin:4px 0 8px}.dt b{display:block;margin:6px 0 2px}
 .bars.sm{height:100px}
 svg.line text{fill:var(--mu);font-size:9px}.dl{stroke-dasharray:1;stroke-dashoffset:1;animation:dr 1.6s ease forwards}@keyframes dr{to{stroke-dashoffset:0}}
-footer.pw{text-align:center;font-size:11px;letter-spacing:.3em;color:var(--mu);padding:18px 0 6px}footer.pw b{color:var(--pr)}
+footer.pw{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;font-size:11px;letter-spacing:.3em;color:var(--mu);padding:18px 0 6px}footer.pw b{color:var(--pr)}
+footer.pw a{color:inherit;text-decoration:none;direction:ltr}footer.pw a:hover b{text-decoration:underline}
+footer.pw a.more{letter-spacing:0;font-size:12px;font-weight:700;padding:3px 12px;border-radius:99px;border:1px solid currentColor;opacity:.8}footer.pw a.more:hover{opacity:1;color:var(--pr)}
 [dir=ltr] .x{left:auto;right:12px}
 @media(max-width:600px){.r .rc{grid-template-columns:1fr 1fr}.rh{display:none}}
 @media(max-width:600px){body{padding:8px}.row3{grid-template-columns:1fr 1fr}.ar{flex-direction:column;align-items:stretch}.kpis{grid-template-columns:1fr 1fr}.k b{font-size:18px}.ctl .in{flex:1}}

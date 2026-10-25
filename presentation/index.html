@@ -50,6 +50,9 @@ h2{font-size:clamp(32px,5vw,60px)}
 .demo:hover{transform:translateY(-2px)}
 .demo small{font-weight:600;opacity:.75;font-size:12px}
 .demos{display:flex;flex-wrap:wrap;gap:10px}
+/* every HENDAWY opens the HINDAWY portfolio */
+a.hdw{color:inherit;text-decoration:none;display:inline-block}a.hdw:hover b,a.sig.hdw:hover{text-decoration:underline}a.sig.hdw{color:var(--marker)}
+a.demo{text-decoration:none}
 .demo.ghost{background:transparent;color:var(--marker);border:1.5px solid var(--marker);animation:none}
 @keyframes pulse{50%{box-shadow:0 0 0 10px #f2c14e00}}
 
@@ -202,7 +205,7 @@ h2{font-size:clamp(32px,5vw,60px)}
 
 <div class="app" id="app" dir="rtl" lang="ar">
   <div class="bar">
-    <div class="brand">POWERED BY <b>HENDAWY</b></div>
+    <a class="brand hdw" href="https://ahmedelhendway0-byte.github.io/portfolio/" target="_blank" rel="noopener">POWERED BY <b>HENDAWY</b></a>
     <div class="chap" id="chap"></div>
     <div class="ctrls">
       <button id="prev" aria-label="المشهد اللي فات">→</button>
@@ -226,7 +229,7 @@ h2{font-size:clamp(32px,5vw,60px)}
           <div class="stat a" style="--d:1.8"><b class="mono">0 ج</b><span>تكلفة استضافة</span></div>
           <div class="stat a" style="--d:1.95"><b class="mono">AR·EN</b><span>عربي وإنجليزي</span></div>
         </div>
-        <div class="powered a" style="--d:2.2">POWERED BY <b>HENDAWY</b></div>
+        <a class="powered a hdw" style="--d:2.2" href="https://ahmedelhendway0-byte.github.io/portfolio/" target="_blank" rel="noopener">POWERED BY <b>HENDAWY</b></a>
       </div>
     </section>
 
@@ -531,9 +534,11 @@ h2{font-size:clamp(32px,5vw,60px)}
           <div class="a" style="--d:.95"><em>بعد كده</em><b>أبلكيشن على المتاجر</b><span>Google Play و App Store.</span></div>
         </div>
         <div class="outro a" style="--d:1.4;margin-top:10px">
-          <div class="sig">HENDAWY</div>
-          <div class="powered">POWERED BY <b>HENDAWY</b> · نسخة مخصوصة لكل سنتر</div>
-          <div class="demos" style="justify-content:center;margin-top:12px"><button class="demo" data-demo="owner-o_dash" data-t="السيستم كامل">جرّب السيستم كامل</button></div>
+          <a class="sig hdw" href="https://ahmedelhendway0-byte.github.io/portfolio/" target="_blank" rel="noopener">HENDAWY</a>
+          <div class="powered">POWERED BY <a class="hdw" href="https://ahmedelhendway0-byte.github.io/portfolio/" target="_blank" rel="noopener"><b>HENDAWY</b></a> · نسخة مخصوصة لكل سنتر</div>
+          <div class="demos" style="justify-content:center;margin-top:12px"><button class="demo" data-demo="owner-o_dash" data-t="السيستم كامل">جرّب السيستم كامل</button>
+            <a class="demo ghost" href="https://ahmedelhendway0-byte.github.io/portfolio/" target="_blank" rel="noopener">اعرف أكتر عن HENDAWY</a>
+            <a class="demo ghost" href="https://ahmedelhendway0-byte.github.io/portfolio/#team" target="_blank" rel="noopener">اعرف أكتر عن المؤسسين</a></div>
         </div>
       </div>
     </section>
